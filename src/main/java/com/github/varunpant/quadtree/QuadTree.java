@@ -470,4 +470,94 @@ public class QuadTree<T> {
         node.setNodeType(NodeType.LEAF);
         node.setPoint(point);
     }
+    
+    private double distance_min_node_point(Node<T> node, double x, double y){
+        if(x>=node.getX()&&x<=(node.getW()+node.getX())&&y>=node.getY()&&y<=(node.getY()+node.getH())) {
+            return 0;
+        }
+        else{
+            double min=10000;
+            if(x>=node.getX()&&x<=(node.getX()+node.getW())&&y>=(node.getY()+node.getH()))
+               return min=y-(node.getY()+node.getH());
+            if(y>=node.getY()&&y<=(node.getY()+node.getH())&&x<=node.getX())
+              return  min=node.getX()-x;
+            if(x>=node.getX()&&x<=(node.getX()+node.getW())&&y<=node.getY())
+               return min=node.getY()-y;
+            if(y>=node.getY()&&y<=(node.getY()+node.getH())&&x>=(node.getX()+node.getW()))
+                return min=x-(node.getX()+node.getW());
+            if(x<=node.getX()&&y>=(node.getY()+node.getH()))
+               return min=dist(node.getX(),node.getY()+node.getH(),x,y);
+            if(x<=node.getX()&&y<=node.getY())
+               return min=dist(node.getX(),node.getY(),x,y);
+            if(x>=(node.getX()+node.getW())&&y<=node.getY())
+                return min=dist(node.getX()+node.getW(),node.getY(),x,y);
+            if(x>=(node.getX()+node.getW())&&y>=(node.getY()+node.getH()))
+               return min=dist(node.getX()+node.getW(),node.getY()+node.getH(),x,y);
+            return min;
+        }
+
+    }
+    
+     /**
+     * Returns k nearest Point ID
+     * @param {Query point}
+     * @param {number}k
+     * @return {int[] QuadTree.Node.Point.trajID}
+     */
+
+    
+     public  Point<T>[] k_nearestneighbourquery(Query query,int k){
+        Point<T>[] knearestPoint=new Point[k];
+        PriorityQueue <Point<T>>knearest_point_queue=new PriorityQueue<>(k, new Comparator<Point<T>>() {
+            @Override
+            public int compare(Point o1, Point o2) {
+                double i=distance_point(o1,query)-distance_point(o2,query);
+                if(i>0)
+                    return 0;
+                else
+                    return 1;
+            }
+        });
+        List<Node<T>>queue=new ArrayList<>();
+        int resultsize=0;
+        double knearest=Double.MAX_VALUE;
+        queue.add(this.root_);
+        while(queue.size()!=0){
+            Node<T> first=queue.remove(0);
+            if(first.getNodeType()==NodeType.POINTER){
+                if(distance_min_node_point(first.getNe(),query.getX(),query.getY())<=knearest&&containsAct(first.getNe(),query.getKeywordsList()));
+                    queue.add(first.getNe());
+                if(distance_min_node_point(first.getNw(),query.getX(),query.getY())<=knearest&&containsAct(first.getNw(),query.getKeywordsList()))
+                    queue.add(first.getNw());
+                if(distance_min_node_point(first.getSe(),query.getX(),query.getY())<=knearest&&containsAct(first.getSe(),query.getKeywordsList()))
+                    queue.add(first.getSe());
+                if(distance_min_node_point(first.getSw(),query.getX(),query.getY())<=knearest&&containsAct(first.getSw(),query.getKeywordsList()))
+                    queue.add(first.getSw());
+            }
+            else if(first.getNodeType()==NodeType.LEAF){
+                //if(count>=k && distance_point(first.getPoint(),query)>knearest) break;
+                if(resultsize<k){
+                    //knearestPoint[resultsize]=first.getPoint();
+                    knearest_point_queue.add(first.getPoint());
+                    resultsize++;
+                    knearest=distance_point(knearest_point_queue.peek(),query);
+                }else {
+                    if(distance_point(first.getPoint(),query)<distance_point(knearest_point_queue.peek(),query)){
+                        knearest_point_queue.poll();
+                        knearest_point_queue.add(first.getPoint());
+                        knearest=distance_point(knearest_point_queue.peek(),query);
+                    }
+
+                }
+            }
+            else
+                continue;
+        }
+       // if(knearest_point_queue.size()>k) System.out.println(knearest_point_queue.size());
+        for(int i=k-1;i>=0;i--){
+            knearestPoint[i]=knearest_point_queue.poll();
+        }
+        return knearestPoint;
+    }
+    
 }
